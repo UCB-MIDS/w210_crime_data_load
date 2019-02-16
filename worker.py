@@ -35,12 +35,16 @@ crime_classes = {1:'THEFT', 2:'SEXUAL ASSAULT', 3:'NARCOTICS', 4:'ASSAULT', 5:'O
 
 print('Reading Crimes dataset...')
 sys.stdout.flush()
+s3fs.S3FileSystem.read_timeout = 5184000  # one day
+s3fs.S3FileSystem.connect_timeout = 5184000  # one day
 try:
-    #file = './data/Crimes_-_2001_to_present.csv'                      # This line to read from local disk
-    file = 's3://w210policedata/datasets/Crimes_-_2001_to_present.csv' # This line to read from S3
+    #file = './data/Crimes_-_2001_to_present.csv'                       # This line to read from local disk
+    #file = 's3://w210policedata/datasets/Crimes_test.csv'              # This line to read quick test file from S3
+    file = 's3://w210policedata/datasets/Crimes_-_2001_to_present.csv'  # This line to read from S3
     crimes = pd.read_csv(file,sep=',', error_bad_lines=False, index_col='Date', dtype='unicode')
-except:
+except Exception as e:
     print('Error reading input dataset: '+file)
+    print('Error message: '+str(e))
     print('Aborting...')
     sys.exit(1)
 
