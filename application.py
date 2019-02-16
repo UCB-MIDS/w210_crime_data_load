@@ -9,8 +9,8 @@ import threading
 from flask import Flask
 from flask_restful import Resource, Api
 
-app = Flask(__name__)
-api = Api(app)
+application = Flask(__name__)
+api = Api(application)
 
 runningProcess = None
 processStdout = []
@@ -75,4 +75,4 @@ api.add_resource(getJobStatus, '/getJobStatus')
 api.add_resource(killJob, '/killJob')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    application.run(debug=True)
