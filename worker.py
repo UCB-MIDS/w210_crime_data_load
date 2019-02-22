@@ -3,6 +3,7 @@ import pandas as pd
 import s3fs
 import sys
 import os
+from datetime import datetime
 
 # THEFT, BURGLARY, MOTOR VEHICLE THEFT, ROBBERY                 THEFT	                          1
 # BATTERY, CRIM SEXUAL ASSAULT, SEX OFFENSE	                    SEXUAL ASSAULT	                  2
@@ -33,7 +34,7 @@ crime_classes = {1:'THEFT', 2:'SEXUAL ASSAULT', 3:'NARCOTICS', 4:'ASSAULT', 5:'O
                  16:'LIQUOR LAW VIOLATION', 17:'KIDNAPPING', 18:'STALKING', 19:'NON - CRIMINAL', 20:'HUMAN TRAFFICKING',
                  21:'RITUALISM',22:'DOMESTIC VIOLENCE'}
 
-print('Reading Crimes dataset...')
+print('[' + str(datetime.now()) + '] Reading Crimes dataset...')
 sys.stdout.flush()
 s3fs.S3FileSystem.read_timeout = 5184000  # one day
 s3fs.S3FileSystem.connect_timeout = 5184000  # one day
@@ -43,16 +44,19 @@ try:
     file = 's3://w210policedata/datasets/Crimes_-_2001_to_present.csv'  # This line to read from S3
     crimes = pd.read_csv(file,sep=',', error_bad_lines=False, index_col='Date', dtype='unicode')
 except Exception as e:
-    print('Error reading input dataset: '+file)
-    print('Error message: '+str(e))
-    print('Aborting...')
+    print('[' + str(datetime.now()) + '] Error reading input dataset: '+file)
+    print('[' + str(datetime.now()) + '] Error message: '+str(e))
+    print('[' + str(datetime.now()) + '] Aborting...')
+    sys.stdout.flush()
     sys.exit(1)
 
-print('Processing and transforming data...')
+print('[' + str(datetime.now()) + '] Processing and transforming data...')
 sys.stdout.flush()
 try:
     crimes = crimes.iloc[:, 3: ]
     crimes.index = pd.to_datetime(crimes.index)
+    print('[' + str(datetime.now()) + ']        * Grouping similar crime types...')
+    sys.stdout.flush()
     classifiedCrimes = crimes.replace(['THEFT', 'BURGLARY', 'MOTOR VEHICLE THEFT', 'ROBBERY' ,'BATTERY', 'CRIM SEXUAL ASSAULT',
                                        'SEX OFFENSE' , 'NARCOTICS','OTHER NARCOTIC VIOLATION' , 'ASSAULT', 'INTIMIDATION' ,
                                        'OTHER OFFENSE' , 'DECEPTIVE PRACTICE' , 'CRIMINAL TRESPASS' , 'WEAPONS VIOLATION' ,
@@ -64,31 +68,80 @@ try:
                                        ,[1,1,1,1,2,2,2,3,3,4,4,5,6,7,8,8,9,9,10,11,12,13,14,14,15,16,17,18,18,19,19,19,20,21,22])
 
     primaryTypes = classifiedCrimes[['Primary Type']]
+    print('[' + str(datetime.now()) + ']        * Filtering columns...')
+    sys.stdout.flush()
     classifiedCrimes = classifiedCrimes[['Primary Type','Beat']]
+    print('[' + str(datetime.now()) + ']        * Removing problem lines...')
+    sys.stdout.flush()
     classifiedCrimes1 = classifiedCrimes.dropna(axis=0,how='any')
+    print('[' + str(datetime.now()) + ']        * Converting time format...')
+    sys.stdout.flush()
     classifiedCrimes1.index = pd.to_datetime(classifiedCrimes1.index)
     classifiedCrimes1 = classifiedCrimes1.reset_index()
+    print('[' + str(datetime.now()) + ']        * Creating new features from columns...')
+    sys.stdout.flush()
     classifiedCrimes1['Weekday'] = classifiedCrimes1['Date'].dt.dayofweek
     classifiedCrimes1['Week of Year'] = classifiedCrimes1['Date'].dt.weekofyear
     classifiedCrimes1['Hour of the Day'] = classifiedCrimes1['Date'].dt.hour
     classifiedCrimes1['Hour of the Day'].replace([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
                                                  [0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0],
                                                  inplace=True)
-except:
-    print('Error performing dataset transformation')
-    print('Aborting...')
+
+    training_data = classifiedCrimes1
+    training_data['Year'] = pd.to_datetime(training_data['Date']).dt.year
+    # print('[' + str(datetime.now()) + ']        * Dropping index column...')
+    # sys.stdout.flush()
+    # training_data.drop(columns=[''], inplace=True)
+    print('[' + str(datetime.now()) + ']        * Consolidating data and filling empty rows...')
+    sys.stdout.flush()
+    training_data = training_data.groupby(['Year','Primary Type','Beat','Weekday','Week of Year','Hour of the Day'])\
+                                 .size().unstack().fillna(0).stack().reset_index(name='counts')
+    print('[' + str(datetime.now()) + ']        * One-Hot Encoding categorical variables...')
+    sys.stdout.flush()
+    training_data = pd.concat([training_data,pd.get_dummies(training_data['Primary Type'], prefix='type')],axis=1)
+    print('[' + str(datetime.now()) + ']            - Primary Type complete')
+    sys.stdout.flush()
+    training_data = pd.concat([training_data,pd.get_dummies(training_data['Beat'], prefix='beat')],axis=1)
+    print('[' + str(datetime.now()) + ']            - Beat complete')
+    sys.stdout.flush()
+    training_data = pd.concat([training_data,pd.get_dummies(training_data['Weekday'], prefix='weekday')],axis=1)
+    print('[' + str(datetime.now()) + ']            - Weekday complete')
+    sys.stdout.flush()
+    training_data = pd.concat([training_data,pd.get_dummies(training_data['Week of Year'], prefix='weekyear')],axis=1)
+    print('[' + str(datetime.now()) + ']            - Week of year complete')
+    sys.stdout.flush()
+    training_data = pd.concat([training_data,pd.get_dummies(training_data['Hour of the Day'], prefix='hourday')],axis=1)
+    print('[' + str(datetime.now()) + ']             - Hour of day complete')
+    sys.stdout.flush()
+    print('[' + str(datetime.now()) + ']        * Dropping unused columns...')
+    sys.stdout.flush()
+    training_data.drop(columns=['Year','Primary Type','Beat','Weekday','Week of Year','Hour of the Day'], inplace=True)
+
+except Exception as e:
+    print('[' + str(datetime.now()) + '] Error performing dataset transformation')
+    print('[' + str(datetime.now()) + '] Aborting...')
+    print(e)
+    sys.stdout.flush()
     sys.exit(1)
 
-print('Writing processed dataset...')
+print('[' + str(datetime.now()) + '] Writing processed datasets...')
 sys.stdout.flush()
 try:
+    print('[' + str(datetime.now()) + ']        * Writing reduced processed dataset...')
+    sys.stdout.flush()
     #output = './data/ProcessedDataset.csv'                      # This line to write to local disk
     output = 's3://w210policedata/datasets/ProcessedDataset.csv' # This line to write to S3
-    classifiedCrimes1.to_csv(output)
+    classifiedCrimes1.to_csv(output,index=False)
+
+    print('[' + str(datetime.now()) + ']        * Writing one-hot encoded dataset for neural network training...')
+    sys.stdout.flush()
+    #output = './data/OneHotEncodedDataset.csv'                      # This line to write to local disk
+    output = 's3://w210policedata/datasets/OneHotEncodedDataset.csv' # This line to write to S3
+    training_data.to_csv(output,index=False)
 except:
-    print('Error writing output dataset: '+output)
-    print('Aborting...')
+    print('[' + str(datetime.now()) + '] Error writing output dataset: '+output)
+    print('[' + str(datetime.now()) + '] Aborting...')
     sys.exit(1)
 
-print('Finished!')
+print('[' + str(datetime.now()) + '] Finished!')
 sys.exit(0)
