@@ -45,45 +45,50 @@ try:
     crimes = pd.read_csv(file,sep=',', error_bad_lines=False, index_col='Date', dtype='unicode')
 except Exception as e:
     print('[' + str(datetime.now()) + '] Error reading input dataset: '+file)
-    print('[' + str(datetime.now()) + '] Error message: '+str(e))
     print('[' + str(datetime.now()) + '] Aborting...')
     sys.stdout.flush()
     sys.exit(1)
 
 print('[' + str(datetime.now()) + '] Processing and transforming data...')
 sys.stdout.flush()
-crimes = crimes.iloc[:, 3: ]
-crimes.index = pd.to_datetime(crimes.index)
-print('[' + str(datetime.now()) + ']        * Grouping similar crime types...')
-sys.stdout.flush()
-crimes = crimes.replace(['THEFT', 'BURGLARY', 'MOTOR VEHICLE THEFT', 'ROBBERY' ,'BATTERY', 'CRIM SEXUAL ASSAULT',
-                         'SEX OFFENSE' , 'NARCOTICS','OTHER NARCOTIC VIOLATION' , 'ASSAULT', 'INTIMIDATION' ,
-                         'OTHER OFFENSE' , 'DECEPTIVE PRACTICE' , 'CRIMINAL TRESPASS' , 'WEAPONS VIOLATION' ,
-                         'CONCEALED CARRY LICENSE VIOLATION','PUBLIC INDECENCY', 'PUBLIC PEACE VIOLATION',
-                         'OFFENSE INVOLVING CHILDREN','PROSTITUTION','INTERFERENCE WITH PUBLIC OFFICER','HOMICIDE',
-                         'ARSON', 'CRIMINAL DAMAGE','GAMBLING','LIQUOR LAW VIOLATION','KIDNAPPING','STALKING',
-                         'OBSCENITY','NON - CRIMINAL','NON-CRIMINAL', 'NON-CRIMINAL (SUBJECT SPECIFIED)','HUMAN TRAFFICKING',
-                         'RITUALISM','DOMESTIC VIOLENCE']
-                         ,[1,1,1,1,2,2,2,3,3,4,4,5,6,7,8,8,9,9,10,11,12,13,14,14,15,16,17,18,18,19,19,19,20,21,22])
+try:
+    crimes = crimes.iloc[:, 3: ]
+    crimes.index = pd.to_datetime(crimes.index)
+    print('[' + str(datetime.now()) + ']        * Grouping similar crime types...')
+    sys.stdout.flush()
+    crimes = crimes.replace(['THEFT', 'BURGLARY', 'MOTOR VEHICLE THEFT', 'ROBBERY' ,'BATTERY', 'CRIM SEXUAL ASSAULT',
+                             'SEX OFFENSE' , 'NARCOTICS','OTHER NARCOTIC VIOLATION' , 'ASSAULT', 'INTIMIDATION' ,
+                             'OTHER OFFENSE' , 'DECEPTIVE PRACTICE' , 'CRIMINAL TRESPASS' , 'WEAPONS VIOLATION' ,
+                             'CONCEALED CARRY LICENSE VIOLATION','PUBLIC INDECENCY', 'PUBLIC PEACE VIOLATION',
+                             'OFFENSE INVOLVING CHILDREN','PROSTITUTION','INTERFERENCE WITH PUBLIC OFFICER','HOMICIDE',
+                             'ARSON', 'CRIMINAL DAMAGE','GAMBLING','LIQUOR LAW VIOLATION','KIDNAPPING','STALKING',
+                             'OBSCENITY','NON - CRIMINAL','NON-CRIMINAL', 'NON-CRIMINAL (SUBJECT SPECIFIED)','HUMAN TRAFFICKING',
+                             'RITUALISM','DOMESTIC VIOLENCE']
+                             ,[1,1,1,1,2,2,2,3,3,4,4,5,6,7,8,8,9,9,10,11,12,13,14,14,15,16,17,18,18,19,19,19,20,21,22])
 
-print('[' + str(datetime.now()) + ']        * Filtering columns...')
-sys.stdout.flush()
-crimes = crimes[['Primary Type','Beat']]
-print('[' + str(datetime.now()) + ']        * Removing problem lines...')
-sys.stdout.flush()
-crimes = crimes.dropna(axis=0,how='any')
-print('[' + str(datetime.now()) + ']        * Converting time format...')
-sys.stdout.flush()
-#crimes.index = pd.to_datetime(crimes.index)
-crimes = crimes.reset_index()
-print('[' + str(datetime.now()) + ']        * Creating new features from columns...')
-sys.stdout.flush()
-crimes['Weekday'] = crimes['Date'].dt.dayofweek
-crimes['Week of Year'] = crimes['Date'].dt.weekofyear
-crimes['Hour of the Day'] = crimes['Date'].dt.hour
-crimes['Hour of the Day'].replace([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
-                                  [0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0],
-                                  inplace=True)
+    print('[' + str(datetime.now()) + ']        * Filtering columns...')
+    sys.stdout.flush()
+    crimes = crimes[['Primary Type','Beat']]
+    print('[' + str(datetime.now()) + ']        * Removing problem lines...')
+    sys.stdout.flush()
+    crimes = crimes.dropna(axis=0,how='any')
+    print('[' + str(datetime.now()) + ']        * Converting time format...')
+    sys.stdout.flush()
+    #crimes.index = pd.to_datetime(crimes.index)
+    crimes = crimes.reset_index()
+    print('[' + str(datetime.now()) + ']        * Creating new features from columns...')
+    sys.stdout.flush()
+    crimes['Weekday'] = crimes['Date'].dt.dayofweek
+    crimes['Week of Year'] = crimes['Date'].dt.weekofyear
+    crimes['Hour of the Day'] = crimes['Date'].dt.hour
+    crimes['Hour of the Day'].replace([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
+                                      [0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0],
+                                      inplace=True)
+except Exception as e:
+    print('[' + str(datetime.now()) + '] Error performing first part of transformations.')
+    print('[' + str(datetime.now()) + '] Aborting...')
+    sys.stdout.flush()
+    sys.exit(1)
 
 print('[' + str(datetime.now()) + '] Writing intermediate dataset...')
 sys.stdout.flush()
@@ -92,37 +97,43 @@ try:
     output = 's3://w210policedata/datasets/ProcessedDataset.csv' # This line to write to S3
     crimes.to_csv(output,index=False)
 except:
-    print('[' + str(datetime.now()) + '] Error writing output dataset: '+output)
+    print('[' + str(datetime.now()) + '] Error writing intermediate output dataset: '+output)
     print('[' + str(datetime.now()) + '] Aborting...')
     sys.exit(1)
 
-print('[' + str(datetime.now()) + '] Continuing data processing and transformation...')
-sys.stdout.flush()
-crimes['Year'] = pd.to_datetime(crimes['Date']).dt.year
-print('[' + str(datetime.now()) + ']        * Consolidating data and filling empty rows...')
-sys.stdout.flush()
-crimes = crimes.groupby(['Year','Primary Type','Beat','Weekday','Week of Year','Hour of the Day'])\
-               .size().unstack().fillna(0).stack().reset_index(name='counts')
-print('[' + str(datetime.now()) + ']        * One-Hot Encoding categorical variables...')
-sys.stdout.flush()
-crimes = pd.concat([crimes,pd.get_dummies(crimes['Primary Type'], prefix='type')],axis=1)
-print('[' + str(datetime.now()) + ']            - Primary Type complete')
-sys.stdout.flush()
-crimes = pd.concat([crimes,pd.get_dummies(crimes['Beat'], prefix='beat')],axis=1)
-print('[' + str(datetime.now()) + ']            - Beat complete')
-sys.stdout.flush()
-crimes = pd.concat([crimes,pd.get_dummies(crimes['Weekday'], prefix='weekday')],axis=1)
-print('[' + str(datetime.now()) + ']            - Weekday complete')
-sys.stdout.flush()
-crimes = pd.concat([crimes,pd.get_dummies(crimes['Week of Year'], prefix='weekyear')],axis=1)
-print('[' + str(datetime.now()) + ']            - Week of year complete')
-sys.stdout.flush()
-crimes = pd.concat([crimes,pd.get_dummies(crimes['Hour of the Day'], prefix='hourday')],axis=1)
-print('[' + str(datetime.now()) + ']             - Hour of day complete')
-sys.stdout.flush()
-print('[' + str(datetime.now()) + ']        * Dropping unused columns...')
-sys.stdout.flush()
-crimes.drop(columns=['Year','Primary Type','Beat','Weekday','Week of Year','Hour of the Day'], inplace=True)
+try:
+    print('[' + str(datetime.now()) + '] Continuing data processing and transformation...')
+    sys.stdout.flush()
+    crimes['Year'] = pd.to_datetime(crimes['Date']).dt.year
+    print('[' + str(datetime.now()) + ']        * Consolidating data and filling empty rows...')
+    sys.stdout.flush()
+    crimes = crimes.groupby(['Year','Primary Type','Beat','Weekday','Week of Year','Hour of the Day'])\
+                   .size().unstack().fillna(0).stack().reset_index(name='counts')
+    print('[' + str(datetime.now()) + ']        * One-Hot Encoding categorical variables...')
+    sys.stdout.flush()
+    crimes = pd.concat([crimes,pd.get_dummies(crimes['Primary Type'], prefix='type')],axis=1)
+    print('[' + str(datetime.now()) + ']            - Primary Type complete')
+    sys.stdout.flush()
+    crimes = pd.concat([crimes,pd.get_dummies(crimes['Beat'], prefix='beat')],axis=1)
+    print('[' + str(datetime.now()) + ']            - Beat complete')
+    sys.stdout.flush()
+    crimes = pd.concat([crimes,pd.get_dummies(crimes['Weekday'], prefix='weekday')],axis=1)
+    print('[' + str(datetime.now()) + ']            - Weekday complete')
+    sys.stdout.flush()
+    crimes = pd.concat([crimes,pd.get_dummies(crimes['Week of Year'], prefix='weekyear')],axis=1)
+    print('[' + str(datetime.now()) + ']            - Week of year complete')
+    sys.stdout.flush()
+    crimes = pd.concat([crimes,pd.get_dummies(crimes['Hour of the Day'], prefix='hourday')],axis=1)
+    print('[' + str(datetime.now()) + ']             - Hour of day complete')
+    sys.stdout.flush()
+    print('[' + str(datetime.now()) + ']        * Dropping unused columns...')
+    sys.stdout.flush()
+    crimes.drop(columns=['Year','Primary Type','Beat','Weekday','Week of Year','Hour of the Day'], inplace=True)
+except Exception as e:
+    print('[' + str(datetime.now()) + '] Error performing second part of transformations.')
+    print('[' + str(datetime.now()) + '] Aborting...')
+    sys.stdout.flush()
+    sys.exit(1)
 
 print('[' + str(datetime.now()) + '] Writing one-hot encoded dataset...')
 sys.stdout.flush()
