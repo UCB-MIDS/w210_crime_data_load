@@ -93,9 +93,9 @@ except Exception as e:
 print('[' + str(datetime.now()) + '] Writing intermediate dataset...')
 sys.stdout.flush()
 try:
-    #output = './data/ProcessedDataset.csv'                      # This line to write to local disk
-    output = 's3://w210policedata/datasets/ProcessedDataset.csv' # This line to write to S3
-    crimes.to_csv(output,index=False)
+    #output = './data/ProcessedDataset.parquet'                      # This line to write to local disk
+    output = 's3://w210policedata/datasets/ProcessedDataset.parquet' # This line to write to S3
+    crimes.to_parquet(output,index=False)
 except:
     print('[' + str(datetime.now()) + '] Error writing intermediate output dataset: '+output)
     print('[' + str(datetime.now()) + '] Aborting...')
@@ -138,9 +138,9 @@ except Exception as e:
 print('[' + str(datetime.now()) + '] Writing one-hot encoded dataset...')
 sys.stdout.flush()
 try:
-    #output = './data/OneHotEncodedDataset.csv'                      # This line to write to local disk
-    output = 's3://w210policedata/datasets/OneHotEncodedDataset.csv' # This line to write to S3
-    crimes.to_csv(output,index=False)
+    #output = './data/OneHotEncodedDataset.parquet'                      # This line to write to local disk
+    output = 's3://w210policedata/datasets/OneHotEncodedDataset.parquet' # This line to write to S3
+    crimes.to_parquet(output,index=False)
 except:
     print('[' + str(datetime.now()) + '] Error writing output dataset: '+output)
     print('[' + str(datetime.now()) + '] Aborting...')
