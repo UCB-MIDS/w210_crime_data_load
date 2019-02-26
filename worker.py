@@ -82,7 +82,7 @@ try:
     crimes['Week of Year'] = crimes['Date'].dt.weekofyear
     crimes['Hour of the Day'] = crimes['Date'].dt.hour
     crimes['Hour of the Day'].replace([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
-                                      [0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0],
+                                      [0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5],
                                       inplace=True)
 except Exception as e:
     print('[' + str(datetime.now()) + '] Error performing first part of transformations.')
