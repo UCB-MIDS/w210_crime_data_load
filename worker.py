@@ -64,11 +64,32 @@ try:
                              'ARSON', 'CRIMINAL DAMAGE','GAMBLING','LIQUOR LAW VIOLATION','KIDNAPPING','STALKING',
                              'OBSCENITY','NON - CRIMINAL','NON-CRIMINAL', 'NON-CRIMINAL (SUBJECT SPECIFIED)','HUMAN TRAFFICKING',
                              'RITUALISM','DOMESTIC VIOLENCE']
-                             ,[1,1,1,1,2,2,2,3,3,4,4,5,6,7,8,8,9,9,10,11,12,13,14,14,15,16,17,18,18,19,19,19,20,21,22])
+                             ,[crime_classes[1],crime_classes[1],crime_classes[1],crime_classes[1],
+                               crime_classes[2],crime_classes[2],crime_classes[2],
+                               crime_classes[3],crime_classes[3],
+                               crime_classes[4],crime_classes[4],
+                               crime_classes[5],
+                               crime_classes[6],
+                               crime_classes[7],
+                               crime_classes[8],crime_classes[8],
+                               crime_classes[9],crime_classes[9],
+                               crime_classes[10],
+                               crime_classes[11],
+                               crime_classes[12],
+                               crime_classes[13],
+                               crime_classes[14],crime_classes[14],
+                               crime_classes[15],
+                               crime_classes[16],
+                               crime_classes[17],
+                               crime_classes[18],crime_classes[18],
+                               crime_classes[19],crime_classes[19],crime_classes[19],
+                               crime_classes[20],
+                               crime_classes[21],
+                               crime_classes[22]])
 
     print('[' + str(datetime.now()) + ']        * Filtering columns...')
     sys.stdout.flush()
-    crimes = crimes[['Primary Type','Beat']]
+    crimes = crimes[['Primary Type','Community Area']]
     print('[' + str(datetime.now()) + ']        * Removing problem lines...')
     sys.stdout.flush()
     crimes = crimes.dropna(axis=0,how='any')
@@ -82,8 +103,16 @@ try:
     crimes['Week of Year'] = crimes['Date'].dt.weekofyear
     crimes['Hour of the Day'] = crimes['Date'].dt.hour
     crimes['Hour of the Day'].replace([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
-                                      [0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5],
+                                      ['DAWN','DAWN','DAWN','DAWN','DAWN','DAWN','DAWN',
+                                       'MORNING','MORNING','MORNING','MORNING','MORNING',
+                                       'AFTERNOON','AFTERNOON','AFTERNOON','AFTERNOON','AFTERNOON','AFTERNOON',
+                                       'EVENING','EVENING','EVENING','EVENING','EVENING','EVENING'],
                                       inplace=True)
+    crimes['Year'] = pd.to_datetime(crimes['Date']).dt.year
+    print('[' + str(datetime.now()) + ']        * Consolidating data and filling empty rows...')
+    sys.stdout.flush()
+    crimes = crimes.groupby(['Year','Primary Type','Community Area','Weekday','Week of Year','Hour of the Day'])\
+                   .size().unstack().fillna(0).stack().reset_index(name='counts')
 except Exception as e:
     print('[' + str(datetime.now()) + '] Error performing first part of transformations.')
     print('[' + str(datetime.now()) + '] Aborting...')
@@ -104,31 +133,26 @@ except:
 try:
     print('[' + str(datetime.now()) + '] Continuing data processing and transformation...')
     sys.stdout.flush()
-    crimes['Year'] = pd.to_datetime(crimes['Date']).dt.year
-    print('[' + str(datetime.now()) + ']        * Consolidating data and filling empty rows...')
-    sys.stdout.flush()
-    crimes = crimes.groupby(['Year','Primary Type','Beat','Weekday','Week of Year','Hour of the Day'])\
-                   .size().unstack().fillna(0).stack().reset_index(name='counts')
     print('[' + str(datetime.now()) + ']        * One-Hot Encoding categorical variables...')
     sys.stdout.flush()
-    crimes = pd.concat([crimes,pd.get_dummies(crimes['Primary Type'], prefix='type')],axis=1)
+    crimes = pd.concat([crimes,pd.get_dummies(crimes['Primary Type'], prefix='primaryType')],axis=1)
     print('[' + str(datetime.now()) + ']            - Primary Type complete')
     sys.stdout.flush()
-    crimes = pd.concat([crimes,pd.get_dummies(crimes['Beat'], prefix='beat')],axis=1)
-    print('[' + str(datetime.now()) + ']            - Beat complete')
+    crimes = pd.concat([crimes,pd.get_dummies(crimes['Community Area'], prefix='communityArea')],axis=1)
+    print('[' + str(datetime.now()) + ']            - Community Area complete')
     sys.stdout.flush()
-    crimes = pd.concat([crimes,pd.get_dummies(crimes['Weekday'], prefix='weekday')],axis=1)
+    crimes = pd.concat([crimes,pd.get_dummies(crimes['Weekday'], prefix='weekDay')],axis=1)
     print('[' + str(datetime.now()) + ']            - Weekday complete')
     sys.stdout.flush()
-    crimes = pd.concat([crimes,pd.get_dummies(crimes['Week of Year'], prefix='weekyear')],axis=1)
+    crimes = pd.concat([crimes,pd.get_dummies(crimes['Week of Year'], prefix='weekYear')],axis=1)
     print('[' + str(datetime.now()) + ']            - Week of year complete')
     sys.stdout.flush()
-    crimes = pd.concat([crimes,pd.get_dummies(crimes['Hour of the Day'], prefix='hourday')],axis=1)
-    print('[' + str(datetime.now()) + ']             - Hour of day complete')
+    crimes = pd.concat([crimes,pd.get_dummies(crimes['Hour of the Day'], prefix='hourDay')],axis=1)
+    print('[' + str(datetime.now()) + ']            - Hour of day complete')
     sys.stdout.flush()
     print('[' + str(datetime.now()) + ']        * Dropping unused columns...')
     sys.stdout.flush()
-    crimes.drop(columns=['Year','Primary Type','Beat','Weekday','Week of Year','Hour of the Day'], inplace=True)
+    crimes.drop(columns=['Year','Primary Type','Community Area','Weekday','Week of Year','Hour of the Day'], inplace=True)
 except Exception as e:
     print('[' + str(datetime.now()) + '] Error performing second part of transformations.')
     print('[' + str(datetime.now()) + '] Aborting...')
