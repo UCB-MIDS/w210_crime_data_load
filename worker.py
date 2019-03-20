@@ -28,6 +28,17 @@ from datetime import datetime
 # RITUALISM                                                     RITUALISM                         21
 # DOMESTIC VIOLENCE                                             DOMESTIC VIOLENCE                 22
 
+def round_hour(dt):
+    if (dt.hour >= 0) and (dt.hour <= 6):
+        return datetime(dt.year, dt.month, dt.day, 6,0)
+    elif (dt.hour > 6) and (dt.hour <= 11):
+        return datetime(dt.year, dt.month, dt.day, 11,0)
+    elif (dt.hour > 11) and (dt.hour <= 17):
+        return datetime(dt.year, dt.month, dt.day, 17,0)
+    else:
+        return datetime(dt.year, dt.month, dt.day, 23,0)
+
+
 crime_classes = {1:'THEFT', 2:'SEXUAL ASSAULT', 3:'NARCOTICS', 4:'ASSAULT', 5:'OTHER OFFENSE', 6:'DECEPTIVE PRACTICE',
                  7:'CRIMINAL TRESPASS', 8:'WEAPONS VIOLATION', 9:'PUBLIC INDECENCY', 10:'OFFENSE INVOLVING CHILDREN',
                  11:'PROSTITUTION', 12:'INTERFERENCE WITH PUBLIC OFFICER', 13:'HOMICIDE', 14:'ARSON', 15:'GAMBLING',
@@ -53,7 +64,6 @@ print('[' + str(datetime.now()) + '] Processing and transforming data...')
 sys.stdout.flush()
 try:
     crimes = crimes.iloc[:, 3: ]
-    crimes.index = pd.to_datetime(crimes.index)
     print('[' + str(datetime.now()) + ']        * Grouping similar crime types...')
     sys.stdout.flush()
     crimes = crimes.replace(['THEFT', 'BURGLARY', 'MOTOR VEHICLE THEFT', 'ROBBERY' ,'BATTERY', 'CRIM SEXUAL ASSAULT',
@@ -95,7 +105,56 @@ try:
     crimes = crimes.dropna(axis=0,how='any')
     print('[' + str(datetime.now()) + ']        * Converting time format...')
     sys.stdout.flush()
-    #crimes.index = pd.to_datetime(crimes.index)
+    crimes.index = pd.to_datetime(crimes.index)
+except Exception as e:
+    print('[' + str(datetime.now()) + '] Error performing first part of transformations.')
+    print('[' + str(datetime.now()) + '] Aborting...')
+    sys.stdout.flush()
+    sys.exit(1)
+
+print('[' + str(datetime.now()) + '] Performing transformations for time series models...')
+sys.stdout.flush()
+try:
+    print('[' + str(datetime.now()) + ']        * Convert date and time to blocks of hours...')
+    sys.stdout.flush()
+    crimes_ts = crimes.reset_index()
+    crimes_ts['Date'] = crimes_ts['Date'].apply(round_hour)
+    print('[' + str(datetime.now()) + ']        * Consolidating data and filling empty rows...')
+    sys.stdout.flush()
+    crimes_ts = crimes_ts.groupby(['Year','Primary Type','Community Area'])\
+                         .size().unstack().fillna(0).stack().reset_index(name='counts')
+    print('[' + str(datetime.now()) + ']        * One-Hot Encoding categorical variables...')
+    sys.stdout.flush()
+    crimes_ts = pd.concat([crimes_ts,pd.get_dummies(crimes_ts['Primary Type'], prefix='primaryType')],axis=1)
+    print('[' + str(datetime.now()) + ']            - Primary Type complete')
+    sys.stdout.flush()
+    crimes_ts = pd.concat([crimes_ts,pd.get_dummies(crimes_ts['Community Area'], prefix='communityArea')],axis=1)
+    print('[' + str(datetime.now()) + ']            - Community Area complete')
+    sys.stdout.flush()
+    print('[' + str(datetime.now()) + ']        * Dropping unused columns...')
+    sys.stdout.flush()
+    crimes_ts.drop(columns=['Primary Type','Community Area'], inplace=True)
+except Exception as e:
+    print('[' + str(datetime.now()) + '] Error performing transformations for time-series.')
+    print('[' + str(datetime.now()) + '] Aborting...')
+    sys.stdout.flush()
+    sys.exit(1)
+
+print('[' + str(datetime.now()) + '] Writing time-series dataset...')
+sys.stdout.flush()
+try:
+    #output = './data/ProcessedDataset.parquet'                      # This line to write to local disk
+    output = 's3://w210policedata/datasets/OneHotEncodedTSDataset.parquet' # This line to write to S3
+    crimes_ts.to_parquet(output,index=False)
+    del crimes_ts
+except:
+    print('[' + str(datetime.now()) + '] Error writing time-series output dataset: '+output)
+    print('[' + str(datetime.now()) + '] Aborting...')
+    sys.exit(1)
+
+print('[' + str(datetime.now()) + '] Continuing data transformation for fixed-time models...')
+sys.stdout.flush()
+try:
     crimes = crimes.reset_index()
     print('[' + str(datetime.now()) + ']        * Creating new features from columns...')
     sys.stdout.flush()
@@ -114,7 +173,7 @@ try:
     crimes = crimes.groupby(['Year','Primary Type','Community Area','Weekday','Week of Year','Hour of the Day'])\
                    .size().unstack().fillna(0).stack().reset_index(name='counts')
 except Exception as e:
-    print('[' + str(datetime.now()) + '] Error performing first part of transformations.')
+    print('[' + str(datetime.now()) + '] Error performing second part of transformations.')
     print('[' + str(datetime.now()) + '] Aborting...')
     sys.stdout.flush()
     sys.exit(1)
