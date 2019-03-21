@@ -121,7 +121,7 @@ try:
     crimes_ts['Date'] = crimes_ts['Date'].apply(round_hour)
     print('[' + str(datetime.now()) + ']        * Consolidating data and filling empty rows...')
     sys.stdout.flush()
-    crimes_ts = crimes_ts.groupby(['Year','Primary Type','Community Area'])\
+    crimes_ts = crimes_ts.groupby(['Date','Primary Type','Community Area'])\
                          .size().unstack().fillna(0).stack().reset_index(name='counts')
     print('[' + str(datetime.now()) + ']        * One-Hot Encoding categorical variables...')
     sys.stdout.flush()
