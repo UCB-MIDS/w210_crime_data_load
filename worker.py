@@ -140,9 +140,11 @@ try:
     print('[' + str(datetime.now()) + ']        * Creating time lag columns...')
     sys.stdout.flush()
     lag = 4*7*16    # 16 weeks
+    val_size = 240  # 240 time periods per community per type of crime (60 days)
     comms = crimes_ts['Community Area'].unique()
     cts = crimes_ts['Primary Type'].unique()
-    partials = []
+    partials_train = []
+    partials_val = []
     for comm in comms:
         for ct in cts:
             crimes_ts_pt = crimes_ts[((crimes_ts['Community Area'] == comm) & (crimes_ts['Primary Type'] == cts))]
@@ -151,10 +153,13 @@ try:
             columns.append(crimes_ts_pt)
             crimes_ts_pt = pd.concat(columns, axis=1)
             crimes_ts_pt = crimes_ts_pt[lag:]
-            partials.append(crimes_ts_pt)
-    crimes_ts_final = pd.concat(partials,ignore_index=True)
+            partials_train.append(crimes_ts_pt[val_size+1:])
+            partials_val.append(crimes_ts_pt[:-val_size])
+    crimes_ts_train = pd.concat(partials_train,ignore_index=True)
+    crimes_ts_val = pd.concat(partials_val,ignore_index=True)
 except Exception as e:
     print('[' + str(datetime.now()) + '] Error performing transformations for time-series.')
+    print(e)
     print('[' + str(datetime.now()) + '] Aborting...')
     sys.stdout.flush()
     sys.exit(1)
