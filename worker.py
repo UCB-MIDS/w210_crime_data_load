@@ -155,6 +155,7 @@ try:
     comm_count = 1
     for comm in comms:
         print('[' + str(datetime.now()) + ']            - Running community '+str(comm_count)+' of '+str(len(comms)))
+        sys.stdout.flush()
         for ct in cts:
             crimes_ts_pt = crimes_ts[((crimes_ts['communityArea_'+comm] == 1) & (crimes_ts['primaryType_'+ct] == 1))]
             columns = [crimes_ts_pt.shift(i) for i in range(1, lag+1)]
