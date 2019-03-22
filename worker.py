@@ -147,7 +147,7 @@ try:
     partials_val = []
     for comm in comms:
         for ct in cts:
-            crimes_ts_pt = crimes_ts[((crimes_ts['Community Area'] == comm) & (crimes_ts['Primary Type'] == cts))]
+            crimes_ts_pt = crimes_ts[((crimes_ts['Community Area'] == comm) & (crimes_ts['Primary Type'] == ct))]
             crimes_ts_pt.drop(columns=['Date','Primary Type','Community Area'], inplace=True)
             columns = [crimes_ts_pt.shift(i) for i in range(1, lag+1)]
             columns.append(crimes_ts_pt)
