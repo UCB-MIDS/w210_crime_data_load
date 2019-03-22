@@ -134,9 +134,15 @@ try:
     print('[' + str(datetime.now()) + ']        * Sorting data frame to group communities and crime types...')
     sys.stdout.flush()
     crimes_ts.sort_values(by=['Community Area', 'Primary Type', 'Date'], inplace=True)
-    #print('[' + str(datetime.now()) + ']        * Dropping unused columns...')
-    #sys.stdout.flush()
-    #crimes_ts.drop(columns=['Date','Primary Type','Community Area'], inplace=True)
+    print('[' + str(datetime.now()) + ']        * Dropping unused columns...')
+    sys.stdout.flush()
+    comms = crimes_ts['Community Area'].unique()
+    cts = crimes_ts['Primary Type'].unique()
+    crimes_ts.drop(columns=['Date','Primary Type','Community Area'], inplace=True)
+    print('[' + str(datetime.now()) + ']        * Sorting column order...')
+    sys.stdout.flush()
+    cols = crimes_ts.columns.tolist()[1:] + crimes_ts.columns.tolist()[:1]
+    crimes_ts = crimes_ts[cols]
     print('[' + str(datetime.now()) + ']        * Setting dataframe to sparse format...')
     sys.stdout.flush()
     crimes_ts = crimes_ts.to_sparse(fill_value=0)
@@ -144,14 +150,11 @@ try:
     sys.stdout.flush()
     lag = 4*7*16    # 16 weeks
     val_size = 240  # 240 time periods per community per type of crime (60 days)
-    comms = crimes_ts['Community Area'].unique()
-    cts = crimes_ts['Primary Type'].unique()
     partials_train = []
     partials_val = []
     for comm in comms:
         for ct in cts:
-            crimes_ts_pt = crimes_ts[((crimes_ts['Community Area'] == comm) & (crimes_ts['Primary Type'] == ct))]
-            crimes_ts_pt = crimes_ts_pt.drop(columns=['Date','Primary Type','Community Area'])
+            crimes_ts_pt = crimes_ts[((crimes_ts['communityArea_'+comm] == 1) & (crimes_ts['primaryType_'+ct] == 1))]
             columns = [crimes_ts_pt.shift(i) for i in range(1, lag+1)]
             columns.append(crimes_ts_pt.iloc[:,-1:])
             crimes_ts_pt = pd.concat(columns, axis=1)
