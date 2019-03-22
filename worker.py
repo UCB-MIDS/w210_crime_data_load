@@ -142,7 +142,7 @@ try:
     lag = 4*7*16    # 16 weeks
     comms = crimes_ts['Community Area'].unique()
     cts = crimes_ts['Primary Type'].unique()
-    crimes_ts_final = None
+    partials = []
     for comm in comms:
         for ct in cts:
             crimes_ts_pt = crimes_ts[((crimes_ts['Community Area'] == comm) & (crimes_ts['Primary Type'] == cts))]
@@ -150,11 +150,9 @@ try:
             columns = [crimes_ts_pt.shift(i) for i in range(1, lag+1)]
 	        columns.append(crimes_ts_pt)
 	        crimes_ts_pt = pd.concat(columns, axis=1)
-            crimes_ts_pt = crimes_ts_pt[lag:,:]
-            if crimes_ts_final is None:
-                crimes_ts_final = crimes_ts_pt
-            else:
-                crimes_ts_final.append(crimes_ts_pt)
+            crimes_ts_pt = crimes_ts_pt[lag:]
+            partials.append(crimes_ts_pt)
+    crimes_ts_final = pd.concat(partials,ignore_index=True)
 except Exception as e:
     print('[' + str(datetime.now()) + '] Error performing transformations for time-series.')
     print('[' + str(datetime.now()) + '] Aborting...')
