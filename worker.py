@@ -164,16 +164,19 @@ except Exception as e:
     sys.stdout.flush()
     sys.exit(1)
 
-print('[' + str(datetime.now()) + '] Writing time-series dataset...')
+print('[' + str(datetime.now()) + '] Writing time-series datasets...')
 sys.stdout.flush()
 try:
     #output = './data/ProcessedDataset.parquet'                      # This line to write to local disk
-    output = 's3://w210policedata/datasets/OneHotEncodedTSDataset.parquet' # This line to write to S3
-    crimes_ts_final.to_parquet(output,index=False)
+    output_train = 's3://w210policedata/datasets/OneHotEncodedTSDatasetTRAIN.parquet' # This line to write to S3
+    output_val = 's3://w210policedata/datasets/OneHotEncodedTSDatasetVAL.parquet'
+    crimes_ts_train.to_parquet(output_train,index=False)
+    crimes_ts_val.to_parquet(output_val,index=False)
     del columns
     del crimes_ts
     del crimes_ts_pt
-    del crimes_ts_final
+    del crimes_ts_train
+    del crimes_ts_val
 except:
     print('[' + str(datetime.now()) + '] Error writing time-series output dataset: '+output)
     print('[' + str(datetime.now()) + '] Aborting...')
