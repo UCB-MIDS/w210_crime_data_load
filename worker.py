@@ -131,16 +131,30 @@ try:
     crimes_ts = pd.concat([crimes_ts,pd.get_dummies(crimes_ts['Community Area'], prefix='communityArea')],axis=1)
     print('[' + str(datetime.now()) + ']            - Community Area complete')
     sys.stdout.flush()
-    print('[' + str(datetime.now()) + ']        * Dropping unused columns...')
+    print('[' + str(datetime.now()) + ']        * Sorting data frame to group communities and crime types...')
     sys.stdout.flush()
-    crimes_ts.drop(columns=['Primary Type','Community Area'], inplace=True)
+    crimes_ts.sort_values(by=['Community Area', 'Primary Type', 'Date'], inplace=True)
+    #print('[' + str(datetime.now()) + ']        * Dropping unused columns...')
+    #sys.stdout.flush()
+    #crimes_ts.drop(columns=['Date','Primary Type','Community Area'], inplace=True)
     print('[' + str(datetime.now()) + ']        * Creating time lag columns...')
     sys.stdout.flush()
     lag = 4*7*16    # 16 weeks
-	columns = [crimes_ts.shift(i) for i in range(1, lag+1)]
-	columns.append(crimes_ts)
-	crimes_ts = pd.concat(columns, axis=1)
-    crimes_ts = crimes_ts[lag:,:]
+    comms = crimes_ts['Community Area'].unique()
+    cts = crimes_ts['Primary Type'].unique()
+    crimes_ts_final = None
+    for comm in comms:
+        for ct in cts:
+            crimes_ts_pt = crimes_ts[((crimes_ts['Community Area'] == comm) & (crimes_ts['Primary Type'] == cts))]
+            crimes_ts_pt.drop(columns=['Date','Primary Type','Community Area'], inplace=True)
+            columns = [crimes_ts_pt.shift(i) for i in range(1, lag+1)]
+	        columns.append(crimes_ts_pt)
+	        crimes_ts_pt = pd.concat(columns, axis=1)
+            crimes_ts_pt = crimes_ts_pt[lag:,:]
+            if crimes_ts_final is None:
+                crimes_ts_final = crimes_ts_pt
+            else:
+                crimes_ts_final.append(crimes_ts_pt)
 except Exception as e:
     print('[' + str(datetime.now()) + '] Error performing transformations for time-series.')
     print('[' + str(datetime.now()) + '] Aborting...')
@@ -152,9 +166,11 @@ sys.stdout.flush()
 try:
     #output = './data/ProcessedDataset.parquet'                      # This line to write to local disk
     output = 's3://w210policedata/datasets/OneHotEncodedTSDataset.parquet' # This line to write to S3
-    crimes_ts.to_parquet(output,index=False)
+    crimes_ts_final.to_parquet(output,index=False)
     del columns
     del crimes_ts
+    del crimes_ts_pt
+    del crimes_ts_final
 except:
     print('[' + str(datetime.now()) + '] Error writing time-series output dataset: '+output)
     print('[' + str(datetime.now()) + '] Aborting...')
