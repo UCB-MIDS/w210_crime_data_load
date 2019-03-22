@@ -146,13 +146,15 @@ try:
     print('[' + str(datetime.now()) + ']        * Setting dataframe to sparse format...')
     sys.stdout.flush()
     crimes_ts = crimes_ts.to_sparse(fill_value=0)
-    print('[' + str(datetime.now()) + ']        * Creating time lag columns...')
+    print('[' + str(datetime.now()) + ']        * Re-strutucturing data into time lag format...')
     sys.stdout.flush()
     lag = 4*7*16    # 16 weeks
     val_size = 240  # 240 time periods per community per type of crime (60 days)
     partials_train = []
     partials_val = []
+    comm_count = 1
     for comm in comms:
+        print('[' + str(datetime.now()) + ']            - Running community '+str(comm_count)+' of '+str(len(comms)))
         for ct in cts:
             crimes_ts_pt = crimes_ts[((crimes_ts['communityArea_'+comm] == 1) & (crimes_ts['primaryType_'+ct] == 1))]
             columns = [crimes_ts_pt.shift(i) for i in range(1, lag+1)]
@@ -161,6 +163,7 @@ try:
             crimes_ts_pt = crimes_ts_pt[lag:]
             partials_train.append(crimes_ts_pt[val_size+1:])
             partials_val.append(crimes_ts_pt[:-val_size])
+        comm_count = comm_count+1
     crimes_ts_train = pd.concat(partials_train,ignore_index=True)
     crimes_ts_val = pd.concat(partials_val,ignore_index=True)
 except Exception as e:
