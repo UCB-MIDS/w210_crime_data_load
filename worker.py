@@ -137,6 +137,9 @@ try:
     #print('[' + str(datetime.now()) + ']        * Dropping unused columns...')
     #sys.stdout.flush()
     #crimes_ts.drop(columns=['Date','Primary Type','Community Area'], inplace=True)
+    print('[' + str(datetime.now()) + ']        * Setting dataframe to sparse format...')
+    sys.stdout.flush()
+    crimes_ts = crimes_ts.to_sparse(fill_value=0)
     print('[' + str(datetime.now()) + ']        * Creating time lag columns...')
     sys.stdout.flush()
     lag = 4*7*16    # 16 weeks
@@ -148,7 +151,7 @@ try:
     for comm in comms:
         for ct in cts:
             crimes_ts_pt = crimes_ts[((crimes_ts['Community Area'] == comm) & (crimes_ts['Primary Type'] == ct))]
-            crimes_ts_pt.drop(columns=['Date','Primary Type','Community Area'], inplace=True)
+            crimes_ts_pt = crimes_ts_pt.drop(columns=['Date','Primary Type','Community Area'])
             columns = [crimes_ts_pt.shift(i) for i in range(1, lag+1)]
             columns.append(crimes_ts_pt.iloc[:,-1:])
             crimes_ts_pt = pd.concat(columns, axis=1)
@@ -177,6 +180,8 @@ try:
     del crimes_ts_pt
     del crimes_ts_train
     del crimes_ts_val
+    del partials_train
+    del partials_val
 except:
     print('[' + str(datetime.now()) + '] Error writing time-series output dataset: '+output)
     print('[' + str(datetime.now()) + '] Aborting...')
