@@ -112,101 +112,101 @@ except Exception as e:
     sys.stdout.flush()
     sys.exit(1)
 
-print('[' + str(datetime.now()) + '] Performing transformations for time series models...')
-sys.stdout.flush()
-try:
-    print('[' + str(datetime.now()) + ']        * Convert date and time to blocks of hours...')
-    sys.stdout.flush()
-    crimes_ts = crimes.reset_index()
-    crimes_ts['Date'] = crimes_ts['Date'].apply(round_hour)
-    print('[' + str(datetime.now()) + ']        * Consolidating data and filling empty rows...')
-    sys.stdout.flush()
-    crimes_ts = crimes_ts.groupby(['Date','Primary Type','Community Area'])\
-                         .size().unstack().fillna(0).stack().reset_index(name='counts')
-    print('[' + str(datetime.now()) + ']        * One-Hot Encoding categorical variables...')
-    sys.stdout.flush()
-    crimes_ts = pd.concat([crimes_ts,pd.get_dummies(crimes_ts['Primary Type'], prefix='primaryType')],axis=1)
-    print('[' + str(datetime.now()) + ']            - Primary Type complete')
-    sys.stdout.flush()
-    crimes_ts = pd.concat([crimes_ts,pd.get_dummies(crimes_ts['Community Area'], prefix='communityArea')],axis=1)
-    print('[' + str(datetime.now()) + ']            - Community Area complete')
-    sys.stdout.flush()
-    print('[' + str(datetime.now()) + ']        * Sorting data frame to group communities and crime types...')
-    sys.stdout.flush()
-    crimes_ts.sort_values(by=['Community Area', 'Primary Type', 'Date'], inplace=True)
-    print('[' + str(datetime.now()) + ']        * Dropping unused columns...')
-    sys.stdout.flush()
-    comms = crimes_ts['Community Area'].unique()
-    cts = crimes_ts['Primary Type'].unique()
-    crimes_ts.drop(columns=['Date','Primary Type','Community Area'], inplace=True)
-    print('[' + str(datetime.now()) + ']        * Sorting column order...')
-    sys.stdout.flush()
-    cols = crimes_ts.columns.tolist()[1:] + crimes_ts.columns.tolist()[:1]
-    crimes_ts = crimes_ts[cols]
-    print('[' + str(datetime.now()) + ']        * Setting dataframe to sparse format...')
-    sys.stdout.flush()
-    crimes_ts = crimes_ts.to_sparse(fill_value=0)
-    print('[' + str(datetime.now()) + ']        * Re-strutucturing data into time lag format...')
-    sys.stdout.flush()
-    lag = 4*7*16    # 16 weeks
-    val_size = 240  # 240 time periods per community per type of crime (60 days)
-    partials_train = []
-    partials_val = []
-    comm_count = 1
-    for comm in comms:
-        print('[' + str(datetime.now()) + ']            - Running community '+str(comm_count)+' of '+str(len(comms)))
-        sys.stdout.flush()
-        ct_count = 1
-        for ct in cts:
-            print('[' + str(datetime.now()) + ']                # Running primary type '+ct+' (' + ct_count + ' of ' + str(len(cts))+ ')' )
-            sys.stdout.flush()
-            crimes_ts_pt = crimes_ts[((crimes_ts['communityArea_'+comm] == 1) & (crimes_ts['primaryType_'+ct] == 1))]
-            print('[' + str(datetime.now()) + ']                    > Dataset sliced' )
-            sys.stdout.flush()
-            columns = [crimes_ts_pt.shift(i) for i in range(1, lag+1)]
-            print('[' + str(datetime.now()) + ']                    > Lagged time columns created' )
-            sys.stdout.flush()
-            columns.append(crimes_ts_pt.iloc[:,-1:])
-            crimes_ts_pt = pd.concat(columns, axis=1)
-            print('[' + str(datetime.now()) + ']                    > Columns concatenated' )
-            sys.stdout.flush()
-            crimes_ts_pt = crimes_ts_pt[lag:]
-            print('[' + str(datetime.now()) + ']                    > Removed initial rows' )
-            sys.stdout.flush()
-            partials_train.append(crimes_ts_pt[val_size+1:])
-            partials_val.append(crimes_ts_pt[:-val_size])
-            print('[' + str(datetime.now()) + ']                    > Done' )
-            sys.stdout.flush()
-            ct_count = ct_count + 1
-        comm_count = comm_count+1
-    crimes_ts_train = pd.concat(partials_train,ignore_index=True)
-    crimes_ts_val = pd.concat(partials_val,ignore_index=True)
-except Exception as e:
-    print('[' + str(datetime.now()) + '] Error performing transformations for time-series.')
-    print(e)
-    print('[' + str(datetime.now()) + '] Aborting...')
-    sys.stdout.flush()
-    sys.exit(1)
-
-print('[' + str(datetime.now()) + '] Writing time-series datasets...')
-sys.stdout.flush()
-try:
-    #output = './data/ProcessedDataset.parquet'                      # This line to write to local disk
-    output_train = 's3://w210policedata/datasets/OneHotEncodedTSDatasetTRAIN.parquet' # This line to write to S3
-    output_val = 's3://w210policedata/datasets/OneHotEncodedTSDatasetVAL.parquet'
-    crimes_ts_train.to_parquet(output_train,index=False)
-    crimes_ts_val.to_parquet(output_val,index=False)
-    del columns
-    del crimes_ts
-    del crimes_ts_pt
-    del crimes_ts_train
-    del crimes_ts_val
-    del partials_train
-    del partials_val
-except:
-    print('[' + str(datetime.now()) + '] Error writing time-series output dataset: '+output)
-    print('[' + str(datetime.now()) + '] Aborting...')
-    sys.exit(1)
+# print('[' + str(datetime.now()) + '] Performing transformations for time series models...')
+# sys.stdout.flush()
+# try:
+#     print('[' + str(datetime.now()) + ']        * Convert date and time to blocks of hours...')
+#     sys.stdout.flush()
+#     crimes_ts = crimes.reset_index()
+#     crimes_ts['Date'] = crimes_ts['Date'].apply(round_hour)
+#     print('[' + str(datetime.now()) + ']        * Consolidating data and filling empty rows...')
+#     sys.stdout.flush()
+#     crimes_ts = crimes_ts.groupby(['Date','Primary Type','Community Area'])\
+#                          .size().unstack().fillna(0).stack().reset_index(name='counts')
+#     print('[' + str(datetime.now()) + ']        * One-Hot Encoding categorical variables...')
+#     sys.stdout.flush()
+#     crimes_ts = pd.concat([crimes_ts,pd.get_dummies(crimes_ts['Primary Type'], prefix='primaryType')],axis=1)
+#     print('[' + str(datetime.now()) + ']            - Primary Type complete')
+#     sys.stdout.flush()
+#     crimes_ts = pd.concat([crimes_ts,pd.get_dummies(crimes_ts['Community Area'], prefix='communityArea')],axis=1)
+#     print('[' + str(datetime.now()) + ']            - Community Area complete')
+#     sys.stdout.flush()
+#     print('[' + str(datetime.now()) + ']        * Sorting data frame to group communities and crime types...')
+#     sys.stdout.flush()
+#     crimes_ts.sort_values(by=['Community Area', 'Primary Type', 'Date'], inplace=True)
+#     print('[' + str(datetime.now()) + ']        * Dropping unused columns...')
+#     sys.stdout.flush()
+#     comms = crimes_ts['Community Area'].unique()
+#     cts = crimes_ts['Primary Type'].unique()
+#     crimes_ts.drop(columns=['Date','Primary Type','Community Area'], inplace=True)
+#     print('[' + str(datetime.now()) + ']        * Sorting column order...')
+#     sys.stdout.flush()
+#     cols = crimes_ts.columns.tolist()[1:] + crimes_ts.columns.tolist()[:1]
+#     crimes_ts = crimes_ts[cols]
+#     print('[' + str(datetime.now()) + ']        * Setting dataframe to sparse format...')
+#     sys.stdout.flush()
+#     crimes_ts = crimes_ts.to_sparse(fill_value=0)
+#     print('[' + str(datetime.now()) + ']        * Re-strutucturing data into time lag format...')
+#     sys.stdout.flush()
+#     lag = 4*7*16    # 16 weeks
+#     val_size = 240  # 240 time periods per community per type of crime (60 days)
+#     partials_train = []
+#     partials_val = []
+#     comm_count = 1
+#     for comm in comms:
+#         print('[' + str(datetime.now()) + ']            - Running community '+str(comm_count)+' of '+str(len(comms)))
+#         sys.stdout.flush()
+#         ct_count = 1
+#         for ct in cts:
+#             print('[' + str(datetime.now()) + ']                # Running primary type '+ct+' (' + str(ct_count) + ' of ' + str(len(cts))+ ')' )
+#             sys.stdout.flush()
+#             crimes_ts_pt = crimes_ts[((crimes_ts['communityArea_'+comm] == 1) & (crimes_ts['primaryType_'+ct] == 1))]
+#             print('[' + str(datetime.now()) + ']                    > Dataset sliced' )
+#             sys.stdout.flush()
+#             columns = [crimes_ts_pt.shift(i) for i in range(1, lag+1)]
+#             print('[' + str(datetime.now()) + ']                    > Lagged time columns created' )
+#             sys.stdout.flush()
+#             columns.append(crimes_ts_pt.iloc[:,-1:])
+#             crimes_ts_pt = pd.concat(columns, axis=1)
+#             print('[' + str(datetime.now()) + ']                    > Columns concatenated' )
+#             sys.stdout.flush()
+#             crimes_ts_pt = crimes_ts_pt[lag:]
+#             print('[' + str(datetime.now()) + ']                    > Removed initial rows' )
+#             sys.stdout.flush()
+#             partials_train.append(crimes_ts_pt[val_size+1:])
+#             partials_val.append(crimes_ts_pt[:-val_size])
+#             print('[' + str(datetime.now()) + ']                    > Done' )
+#             sys.stdout.flush()
+#             ct_count = ct_count + 1
+#         comm_count = comm_count+1
+#     crimes_ts_train = pd.concat(partials_train,ignore_index=True)
+#     crimes_ts_val = pd.concat(partials_val,ignore_index=True)
+# except Exception as e:
+#     print('[' + str(datetime.now()) + '] Error performing transformations for time-series.')
+#     print(e)
+#     print('[' + str(datetime.now()) + '] Aborting...')
+#     sys.stdout.flush()
+#     sys.exit(1)
+#
+# print('[' + str(datetime.now()) + '] Writing time-series datasets...')
+# sys.stdout.flush()
+# try:
+#     #output = './data/ProcessedDataset.parquet'                      # This line to write to local disk
+#     output_train = 's3://w210policedata/datasets/OneHotEncodedTSDatasetTRAIN.parquet' # This line to write to S3
+#     output_val = 's3://w210policedata/datasets/OneHotEncodedTSDatasetVAL.parquet'
+#     crimes_ts_train.to_parquet(output_train,index=False)
+#     crimes_ts_val.to_parquet(output_val,index=False)
+#     del columns
+#     del crimes_ts
+#     del crimes_ts_pt
+#     del crimes_ts_train
+#     del crimes_ts_val
+#     del partials_train
+#     del partials_val
+# except:
+#     print('[' + str(datetime.now()) + '] Error writing time-series output dataset: '+output)
+#     print('[' + str(datetime.now()) + '] Aborting...')
+#     sys.exit(1)
 
 print('[' + str(datetime.now()) + '] Continuing data transformation for fixed-time models...')
 sys.stdout.flush()
