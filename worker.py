@@ -156,14 +156,28 @@ try:
     for comm in comms:
         print('[' + str(datetime.now()) + ']            - Running community '+str(comm_count)+' of '+str(len(comms)))
         sys.stdout.flush()
+        ct_count = 1
         for ct in cts:
+            print('[' + str(datetime.now()) + ']                # Running primary type '+ct+' (' + ct_count + ' of ' + str(len(cts))+ ')' )
+            sys.stdout.flush()
             crimes_ts_pt = crimes_ts[((crimes_ts['communityArea_'+comm] == 1) & (crimes_ts['primaryType_'+ct] == 1))]
+            print('[' + str(datetime.now()) + ']                    > Dataset sliced' )
+            sys.stdout.flush()
             columns = [crimes_ts_pt.shift(i) for i in range(1, lag+1)]
+            print('[' + str(datetime.now()) + ']                    > Lagged time columns created' )
+            sys.stdout.flush()
             columns.append(crimes_ts_pt.iloc[:,-1:])
             crimes_ts_pt = pd.concat(columns, axis=1)
+            print('[' + str(datetime.now()) + ']                    > Columns concatenated' )
+            sys.stdout.flush()
             crimes_ts_pt = crimes_ts_pt[lag:]
+            print('[' + str(datetime.now()) + ']                    > Removed initial rows' )
+            sys.stdout.flush()
             partials_train.append(crimes_ts_pt[val_size+1:])
             partials_val.append(crimes_ts_pt[:-val_size])
+            print('[' + str(datetime.now()) + ']                    > Done' )
+            sys.stdout.flush()
+            ct_count = ct_count + 1
         comm_count = comm_count+1
     crimes_ts_train = pd.concat(partials_train,ignore_index=True)
     crimes_ts_val = pd.concat(partials_val,ignore_index=True)
