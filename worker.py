@@ -94,8 +94,8 @@ try:
                                crime_classes[18],crime_classes[18],
                                crime_classes[19],crime_classes[19],crime_classes[19],
                                crime_classes[20],
-                               crime_classes[21],
-                               crime_classes[22]])
+                               crime_classes[5],
+                               crime_classes[4]])
 
     print('[' + str(datetime.now()) + ']        * Filtering columns...')
     sys.stdout.flush()
