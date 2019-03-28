@@ -93,7 +93,7 @@ try:
                                crime_classes[17],
                                crime_classes[18],crime_classes[18],
                                crime_classes[19],crime_classes[19],crime_classes[19],
-                               crime_classes[20],
+                               crime_classes[17],
                                crime_classes[5],
                                crime_classes[4]])
 
