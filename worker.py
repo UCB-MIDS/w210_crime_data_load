@@ -302,13 +302,10 @@ sys.stdout.flush()
 try:
     #output = './data/OneHotEncodedDataset.parquet'                      # This line to write to local disk
     output = 'w210policedata/datasets/AvailableFeatures.pickle' # This line to write to S3
-    temp_file = tempfile.NamedTemporaryFile(delete=True)
     s3 = s3fs.S3FileSystem(anon=False)
-    with s3.open(temp_file, "wb") as json_file:
+    with s3.open(output, "wb") as json_file:
         pickle.dump(features, json_file, protocol=pickle.HIGHEST_PROTOCOL)
         json_file.close()
-    s3.put(temp_file.name,output)
-    temp_file.close()
 except:
     print('[' + str(datetime.now()) + '] Error writing features file: '+output)
     print('[' + str(datetime.now()) + '] Aborting...')
