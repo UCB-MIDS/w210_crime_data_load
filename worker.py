@@ -285,5 +285,31 @@ except:
     print('[' + str(datetime.now()) + '] Aborting...')
     sys.exit(1)
 
+print('[' + str(datetime.now()) + '] Building available features file...')
+sys.stdout.flush()
+features = [
+                {'feature': 'Community Area', 'column': 'communityArea', 'onehot-encoded': True, 'ethnically_biased': True, 'optional': True},
+                {'feature': 'Crime Type', 'column': 'primaryType', 'onehot-encoded': True, 'ethnically_biased': False, 'optional': False},
+                {'feature': 'Day of the Week', 'column': 'weekDay', 'onehot-encoded': True, 'ethnically_biased': False, 'optional': False},
+                {'feature': 'Week of the Year', 'column': 'weekYear', 'onehot-encoded': True, 'ethnically_biased': False, 'optional': False},
+                {'feature': 'Period of the Day', 'column': 'hourDay', 'onehot-encoded': True, 'ethnically_biased': False, 'optional': False}
+           ]
+
+print('[' + str(datetime.now()) + '] Writing available features file...')
+sys.stdout.flush()
+try:
+    #output = './data/OneHotEncodedDataset.parquet'                      # This line to write to local disk
+    output = 'w210policedata/datasets/AvailableFeatures.json' # This line to write to S3
+    temp_file = tempfile.NamedTemporaryFile(delete=True)
+    with s3.open(temp_file, "wb") as json_file:
+        pickle.dump(features, json_file, protocol=pickle.HIGHEST_PROTOCOL)
+        json_file.close()
+    s3.put(temp_file.name,output)
+    temp_file.close()
+except:
+    print('[' + str(datetime.now()) + '] Error writing features file: '+output)
+    print('[' + str(datetime.now()) + '] Aborting...')
+    sys.exit(1)
+
 print('[' + str(datetime.now()) + '] Finished!')
 sys.exit(0)
