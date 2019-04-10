@@ -3,6 +3,7 @@ import pandas as pd
 import s3fs
 import sys
 import os
+import pickle
 from datetime import datetime
 
 # THEFT, BURGLARY, MOTOR VEHICLE THEFT, ROBBERY                 THEFT	                          1
@@ -299,7 +300,7 @@ print('[' + str(datetime.now()) + '] Writing available features file...')
 sys.stdout.flush()
 try:
     #output = './data/OneHotEncodedDataset.parquet'                      # This line to write to local disk
-    output = 'w210policedata/datasets/AvailableFeatures.json' # This line to write to S3
+    output = 'w210policedata/datasets/AvailableFeatures.pickle' # This line to write to S3
     temp_file = tempfile.NamedTemporaryFile(delete=True)
     with s3.open(temp_file, "wb") as json_file:
         pickle.dump(features, json_file, protocol=pickle.HIGHEST_PROTOCOL)
