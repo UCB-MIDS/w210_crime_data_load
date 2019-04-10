@@ -302,6 +302,7 @@ try:
     #output = './data/OneHotEncodedDataset.parquet'                      # This line to write to local disk
     output = 'w210policedata/datasets/AvailableFeatures.pickle' # This line to write to S3
     temp_file = tempfile.NamedTemporaryFile(delete=True)
+    s3 = s3fs.S3FileSystem(anon=False)
     with s3.open(temp_file, "wb") as json_file:
         pickle.dump(features, json_file, protocol=pickle.HIGHEST_PROTOCOL)
         json_file.close()
