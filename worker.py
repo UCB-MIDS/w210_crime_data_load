@@ -4,6 +4,7 @@ import s3fs
 import sys
 import os
 import pickle
+import tempfile
 from datetime import datetime
 
 # THEFT, BURGLARY, MOTOR VEHICLE THEFT, ROBBERY                 THEFT	                          1
