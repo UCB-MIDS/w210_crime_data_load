@@ -40,7 +40,7 @@ def round_hour(dt):
     else:
         return datetime(dt.year, dt.month, dt.day, 23,0)
 
-community_to_code = { 'Rogers Park':1,
+community_to_code = { 'Rogers Park':'1,
                       'West Ridge':2,
                       'Uptown':3,
                       'Lincoln Square':4,
@@ -329,7 +329,8 @@ try:
     print('[' + str(datetime.now()) + '] Preparing and transforming CMAP dataset...')
     print('[' + str(datetime.now()) + ']        * Replacing community names with community codes...')
     sys.stdout.flush()
-    cmap['communityArea'] = cmap['GEOG'].map(community_to_code)
+    cmap['Community Area'] = cmap['GEOG'].map(community_to_code)
+    cmap['Community Area'] = cmap['Community Area'].map(str)
     print('[' + str(datetime.now()) + ']        * Transforming columns...')
     sys.stdout.flush()
     cmap['socioEconomic_medianAge'] = pd.to_numeric(cmap['MED_AGE'])
@@ -383,7 +384,7 @@ try:
     cmap['landUse_vacant'] = pd.to_numeric(cmap['VACperc'])
     print('[' + str(datetime.now()) + ']        * Filtering columns...')
     sys.stdout.flush()
-    regex="(communityArea)|(socioEconomic_)|(schooling_)|(housing_)|(commute_)|(lifeQuality_)|(landUse_)"
+    regex="(Community Area)|(socioEconomic_)|(schooling_)|(housing_)|(commute_)|(lifeQuality_)|(landUse_)"
     cmap = cmap.filter(regex=regex,axis=1)
     print('[' + str(datetime.now()) + ']        * Filling in NAs...')
     sys.stdout.flush()
@@ -408,7 +409,7 @@ except Exception as e:
 try:
     print('[' + str(datetime.now()) + '] Combining Additional Features and Crimes datasets...')
     sys.stdout.flush()
-    crimes = pd.merge(crimes, cmap, on='communityArea')
+    crimes = pd.merge(crimes, cmap, on='Community Area')
 except Exception as e:
     print('[' + str(datetime.now()) + '] Error combining additional features and crimes datasets.')
     print('[' + str(datetime.now()) + '] Aborting...')
