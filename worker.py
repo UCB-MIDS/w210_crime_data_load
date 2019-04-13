@@ -40,6 +40,84 @@ def round_hour(dt):
     else:
         return datetime(dt.year, dt.month, dt.day, 23,0)
 
+community_to_code = { 'Rogers Park':1,
+                      'West Ridge':2,
+                      'Uptown':3,
+                      'Lincoln Square':4,
+                      'North Center':5,
+                      'Lake View':6,
+                      'Lincoln Park':7,
+                      'Near North Side':8,
+                      'Edison Park':9,
+                      'Norwood Park':10,
+                      'Jefferson Park':11,
+                      'Forest Glen':12,
+                      'North Park':13,
+                      'Albany Park':14,
+                      'Portage Park':15,
+                      'Irving Park':16,
+                      'Dunning':17,
+                      'Montclare':18,
+                      'Belmont Cragin':19,
+                      'Hermosa':20,
+                      'Avondale':21,
+                      'Logan Square':22,
+                      'Humboldt Park':23,
+                      'West Town':24,
+                      'Austin':25,
+                      'West Garfield Park':26,
+                      'East Garfield Park':27,
+                      'Near West Side':28,
+                      'North Lawndale':29,
+                      'South Lawndale':30,
+                      'Lower West Side':31,
+                      'The Loop':32,
+                      'Near South Side':33,
+                      'Armour Square':34,
+                      'Douglas':35,
+                      'Oakland':36,
+                      'Fuller Park':37,
+                      'Grand Boulevard':38,
+                      'Kenwood':39,
+                      'Washington Park':40,
+                      'Hyde Park':41,
+                      'Woodlawn':42,
+                      'South Shore':43,
+                      'Chatham':44,
+                      'Avalon Park':45,
+                      'South Chicago':46,
+                      'Burnside':47,
+                      'Calumet Heights':48,
+                      'Roseland':49,
+                      'Pullman':50,
+                      'South Deering':51,
+                      'East Side':52,
+                      'West Pullman':53,
+                      'Riverdale':54,
+                      'Hegewisch':55,
+                      'Garfield Ridge':56,
+                      'Archer Heights':57,
+                      'Brighton Park':58,
+                      'McKinley Park':59,
+                      'Bridgeport':60,
+                      'New City':61,
+                      'West Elsdon':62,
+                      'Gage Park':63,
+                      'Clearing':64,
+                      'West Lawn':65,
+                      'Chicago Lawn':66,
+                      'West Englewood':67,
+                      'Englewood':68,
+                      'Greater Grand Crossing':69,
+                      'Ashburn':70,
+                      'Auburn Gresham':71,
+                      'Beverly':72,
+                      'Washington Heights':73,
+                      'Mount Greenwood':74,
+                      'Morgan Park':75,
+                      'O\'Hare':76,
+                      'Edgewater':77
+                    }
 
 crime_classes = {1:'THEFT', 2:'SEXUAL ASSAULT', 3:'NARCOTICS', 4:'ASSAULT', 5:'OTHER OFFENSE', 6:'DECEPTIVE PRACTICE',
                  7:'CRIMINAL TRESPASS', 8:'WEAPONS VIOLATION', 9:'PUBLIC INDECENCY', 10:'OFFENSE INVOLVING CHILDREN',
@@ -236,6 +314,108 @@ except Exception as e:
     sys.stdout.flush()
     sys.exit(1)
 
+try:
+    print('[' + str(datetime.now()) + '] Reading CMAP dataset for additional features...')
+    sys.stdout.flush()
+    file = 's3://w210policedata/datasets/CMAP_dataset.csv'  # This line to read from S3
+    cmap = pd.read_csv(file,sep=',', error_bad_lines=False, dtype='unicode')
+except Exception as e:
+    print('[' + str(datetime.now()) + '] Error reading CMAP dataset: '+file)
+    print('[' + str(datetime.now()) + '] Aborting...')
+    sys.stdout.flush()
+    sys.exit(1)
+
+try:
+    print('[' + str(datetime.now()) + '] Preparing and transforming CMAP dataset...')
+    print('[' + str(datetime.now()) + ']        * Replacing community names with community codes...')
+    sys.stdout.flush()
+    cmap['communityArea'] = cmap['GEOG'].map(community_to_code)
+    print('[' + str(datetime.now()) + ']        * Transforming columns...')
+    sys.stdout.flush()
+    cmap['socioEconomic_medianAge'] = pd.to_numeric(cmap['MED_AGE'])
+    cmap['socioEconomic_medianIncome'] = pd.to_numeric(cmap['MEDINC'])
+    cmap['socioEconomic_popInHouseholds'] = pd.to_numeric(cmap['POP_HH'])/pd.to_numeric(cmap['TOT_POP'])
+    cmap['schooling_lessHighSchool'] = pd.to_numeric(cmap['LT_HS'])/pd.to_numeric(cmap['POP_25OV'])
+    cmap['schooling_highSchool'] = pd.to_numeric(cmap['HS'])/pd.to_numeric(cmap['POP_25OV'])
+    cmap['schooling_someCollege'] = pd.to_numeric(cmap['SOME_COLL'])/pd.to_numeric(cmap['POP_25OV'])
+    cmap['schooling_Associate'] = pd.to_numeric(cmap['ASSOC'])/pd.to_numeric(cmap['POP_25OV'])
+    cmap['schooling_Bachelor'] = pd.to_numeric(cmap['BACH'])/pd.to_numeric(cmap['POP_25OV'])
+    cmap['schooling_Graduate'] = pd.to_numeric(cmap['GRAD_PROF'])/pd.to_numeric(cmap['POP_25OV'])
+    cmap['housing_Occupied'] = pd.to_numeric(cmap['TOT_HH'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_Vacant'] = pd.to_numeric(cmap['VAC_HU'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_OwnerOccupied'] = pd.to_numeric(cmap['OWN_OCC_HU'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_RenterOccupied'] = pd.to_numeric(cmap['RENT_OCC_HU'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_SingleFamilyDetached'] = pd.to_numeric(cmap['HU_SNG_DET'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_SingleFamilyAttached'] = pd.to_numeric(cmap['HU_SNG_ATT'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_TwoUnits'] = pd.to_numeric(cmap['HU_2UN'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_ThreeOrFourUnits'] = pd.to_numeric(cmap['HU_3_4UN'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_FiveOrMoreUnits'] = pd.to_numeric(cmap['HU_GT_5UN'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_medianNumberRooms'] = pd.to_numeric(cmap['MED_ROOMS'])
+    cmap['housing_Later2000'] = pd.to_numeric(cmap['HA_AFT2000'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_1970to1999'] = pd.to_numeric(cmap['HA_70_00'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_1940to1969'] = pd.to_numeric(cmap['HA_40_70'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_Before1940'] = pd.to_numeric(cmap['HA_BEF1940'])/pd.to_numeric(cmap['HU_TOT'])
+    cmap['housing_medianHouseAge'] = pd.to_numeric(cmap['MED_HA'])
+    cmap['socioEconomic_inLaborForce'] = pd.to_numeric(cmap['IN_LBFRC'])/pd.to_numeric(cmap['POP_16OV'])
+    cmap['socioEconomic_employed'] = pd.to_numeric(cmap['EMP'])/pd.to_numeric(cmap['IN_LBFRC'])
+    cmap['socioEconomic_unemployed'] = pd.to_numeric(cmap['UNEMP'])/pd.to_numeric(cmap['IN_LBFRC'])
+    cmap['socioEconomic_notInLaborForce'] = pd.to_numeric(cmap['NOT_IN_LBFRC'])/pd.to_numeric(cmap['POP_16OV'])
+    cmap['commute_carAlone'] = pd.to_numeric(cmap['DROVE_AL'])/pd.to_numeric(cmap['TOT_COMM'])
+    cmap['commute_carpool'] = pd.to_numeric(cmap['CARPOOL'])/pd.to_numeric(cmap['TOT_COMM'])
+    cmap['commute_transit'] = pd.to_numeric(cmap['TRANSIT'])/pd.to_numeric(cmap['TOT_COMM'])
+    cmap['commute_walkOrBike'] = pd.to_numeric(cmap['WALK_BIKE'])/pd.to_numeric(cmap['TOT_COMM'])
+    cmap['commute_other'] = pd.to_numeric(cmap['COMM_OTHER'])/pd.to_numeric(cmap['TOT_COMM'])
+    cmap['commute_averageVehicleMilesTravelled'] = pd.to_numeric(cmap['AVG_VMT'])
+    cmap['socioEconomic_noVehiclesAvailable'] = pd.to_numeric(cmap['NO_VEH'])/pd.to_numeric(cmap['TOT_HH'])
+    cmap['socioEconomic_oneVehicleAvailable'] = pd.to_numeric(cmap['ONE_VEH'])/pd.to_numeric(cmap['TOT_HH'])
+    cmap['socioEconomic_twoVehiclesAvailable'] = pd.to_numeric(cmap['TWO_VEH'])/pd.to_numeric(cmap['TOT_HH'])
+    cmap['socioEconomic_threeOrMoreVehiclesAvailable'] = pd.to_numeric(cmap['THREEOM_VEH'])/pd.to_numeric(cmap['TOT_HH'])
+    cmap['lifeQuality_accessibleParkAcreage'] = pd.to_numeric(cmap['OPEN_SPACE_PER_1000'])
+    cmap['landUse_singleFamilyResidential'] = pd.to_numeric(cmap['Sfperc'])
+    cmap['landUse_multiFamilyResidential'] = pd.to_numeric(cmap['Mfperc'])
+    cmap['landUse_commercial'] = pd.to_numeric(cmap['COMMperc'])
+    cmap['landUse_industrial'] = pd.to_numeric(cmap['INDperc'])
+    cmap['landUse_institutional'] = pd.to_numeric(cmap['INSTperc'])
+    cmap['landUse_mixedUse'] = pd.to_numeric(cmap['MIXperc'])
+    cmap['landUse_transportation'] = pd.to_numeric(cmap['TRANSperc'])
+    cmap['landUse_agricultural'] = pd.to_numeric(cmap['Agperc'])
+    cmap['landUse_openSpace'] = pd.to_numeric(cmap['OPENperc'])
+    cmap['landUse_vacant'] = pd.to_numeric(cmap['VACperc'])
+    print('[' + str(datetime.now()) + ']        * Filtering columns...')
+    sys.stdout.flush()
+    regex="(communityArea)|(socioEconomic_)|(schooling_)|(housing_)|(commute_)|(lifeQuality_)|(landUse_)"
+    cmap = cmap.filter(regex=regex,axis=1)
+    print('[' + str(datetime.now()) + ']        * Filling in NAs...')
+    sys.stdout.flush()
+    cmap.fillna(0, inplace=True)
+except Exception as e:
+    print('[' + str(datetime.now()) + '] Error transforming CMAP dataset.')
+    print('[' + str(datetime.now()) + '] Aborting...')
+    sys.stdout.flush()
+    sys.exit(1)
+
+try:
+    print('[' + str(datetime.now()) + '] Writing additional features dataset...')
+    sys.stdout.flush()
+    output = 's3://w210policedata/datasets/AdditionalFeatures.parquet' # This line to write to S3
+    cmap.to_parquet(output,index=False)
+except Exception as e:
+    print('[' + str(datetime.now()) + '] Error writing additional features dataset.')
+    print('[' + str(datetime.now()) + '] Aborting...')
+    sys.stdout.flush()
+    sys.exit(1)
+
+try:
+    print('[' + str(datetime.now()) + '] Combining Additional Features and Crimes datasets...')
+    sys.stdout.flush()
+    crimes = pd.merge(crimes, cmap, on='communityArea')
+except Exception as e:
+    print('[' + str(datetime.now()) + '] Error combining additional features and crimes datasets.')
+    print('[' + str(datetime.now()) + '] Aborting...')
+    sys.stdout.flush()
+    sys.exit(1)
+
+
 print('[' + str(datetime.now()) + '] Writing intermediate dataset...')
 sys.stdout.flush()
 try:
@@ -294,7 +474,13 @@ features = [
                 {'feature': 'Crime Type', 'column': 'primaryType', 'onehot-encoded': True, 'ethnically_biased': False, 'optional': False},
                 {'feature': 'Day of the Week', 'column': 'weekDay', 'onehot-encoded': True, 'ethnically_biased': False, 'optional': False},
                 {'feature': 'Week of the Year', 'column': 'weekYear', 'onehot-encoded': True, 'ethnically_biased': False, 'optional': False},
-                {'feature': 'Period of the Day', 'column': 'hourDay', 'onehot-encoded': True, 'ethnically_biased': False, 'optional': False}
+                {'feature': 'Period of the Day', 'column': 'hourDay', 'onehot-encoded': True, 'ethnically_biased': False, 'optional': False},
+                {'feature': 'Socioeconomic Data', 'column': 'socioEconomic', 'onehot-encoded': False, 'ethnically_biased': False, 'optional': True},
+                {'feature': 'Schooling', 'column': 'schooling', 'onehot-encoded': False, 'ethnically_biased': False, 'optional': True},
+                {'feature': 'Housing', 'column': 'housing', 'onehot-encoded': False, 'ethnically_biased': False, 'optional': True},
+                {'feature': 'Commute', 'column': 'commute', 'onehot-encoded': False, 'ethnically_biased': False, 'optional': True},
+                {'feature': 'Quality of Life', 'column': 'lifeQuality', 'onehot-encoded': False, 'ethnically_biased': False, 'optional': True},
+                {'feature': 'Land Use', 'column': 'landUse', 'onehot-encoded': False, 'ethnically_biased': False, 'optional': True}
            ]
 
 print('[' + str(datetime.now()) + '] Writing available features file...')
