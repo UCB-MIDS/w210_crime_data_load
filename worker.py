@@ -40,7 +40,7 @@ def round_hour(dt):
     else:
         return datetime(dt.year, dt.month, dt.day, 23,0)
 
-community_to_code = { 'Rogers Park':'1,
+community_to_code = { 'Rogers Park':1,
                       'West Ridge':2,
                       'Uptown':3,
                       'Lincoln Square':4,
