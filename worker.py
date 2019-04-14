@@ -398,8 +398,10 @@ except Exception as e:
 try:
     print('[' + str(datetime.now()) + '] Writing additional features dataset...')
     sys.stdout.flush()
-    output = 's3://w210policedata/datasets/AdditionalFeatures.parquet' # This line to write to S3
-    cmap.to_parquet(output,index=False)
+    # output = 's3://w210policedata/datasets/AdditionalFeatures.parquet' # This line to write to S3
+    # cmap.to_parquet(output,index=False)
+    output = 's3://w210policedata/datasets/AdditionalFeatures.csv' # This line to write to S3
+    cmap.to_csv(output,index=False)
 except Exception as e:
     print('[' + str(datetime.now()) + '] Error writing additional features dataset.')
     print('[' + str(datetime.now()) + '] Aborting...')
